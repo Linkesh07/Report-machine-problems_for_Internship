@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf %}
+{% set editing = mode == 'edit' %}
+{% block title %}{{ 'Edit worker' if editing else 'Add worker' }} · {{ app_name }}{% endblock %}
+{% block page_title %}{{ 'Edit worker' if editing else 'Add a worker' }}{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{{ url_for('manager.workers') }}">&larr; Back to workers</a>
+
+<div class="card form-card narrow">
+  <div class="card-head"><h2>{{ icon('users') }} {{ 'Worker details' if editing else 'New worker account' }}</h2></div>
+  <form method="post" novalidate>
+    {{ csrf() }}
+
+    <div class="field">
+      <label for="employee_id">Employee ID</label>
+      {% if editing %}
+      <input id="employee_id" type="text" value="{{ worker.employee_id }}" readonly>
+      <small class="hint">The Employee ID cannot be changed.</small>
+      {% else %}
+      <input id="employee_id" name="employee_id" type="text" maxlength="20" autocapitalize="characters" placeholder="Example: WRK004" value="{{ form.get('employee_id', suggested) }}" required>
+      <small class="hint">The next free number is filled in for you. You can change it.</small>
+      {% endif %}
+    </div>
+
+    <div class="field">
+      <label for="name">Full name</label>
+      <input id="name" name="name" type="text" maxlength="80" value="{{ worker.name if editing else form.get('name', '') }}" required>
+    </div>
+
+    <div class="field">
+      <label for="password">{{ 'New password (leave empty to keep the old one)' if editing else 'Temporary password' }}</label>
+      <div class="pw">
+        <input id="password" name="password" type="password" autocomplete="new-password" {% if not editing %}required{% endif %}>
+        <button class="pw-toggle" type="button" data-toggle-password>Show</button>
+      </div>
+      <small class="hint">At least 8 characters with a capital letter, a small letter and a number. Tell the worker to change it after the first login.</small>
+    </div>
+
+    {% if editing %}
+    <label class="check"><input type="checkbox" name="active" {% if worker.is_active %}checked{% endif %}> Account is active (the worker can log in)</label>
+    {% if worker.is_locked() or worker.failed_attempts %}
+    <label class="check"><input type="checkbox" name="unlock"> Unlock this account (clear wrong-password attempts)</label>
+    {% endif %}
+    {% endif %}
+
+    <div class="btn-row">
+      <button class="btn btn-primary btn-lg" type="submit">{{ 'Save changes' if editing else 'Create worker' }}</button>
+      <a class="btn btn-ghost btn-lg" href="{{ url_for('manager.workers') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

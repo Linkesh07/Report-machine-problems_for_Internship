@@ -1,0 +1,80 @@
+{% from '_macros.html' import icon %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="theme-color" content="#0c1730">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231d4ed8' d='M12 2l8.66 5v10L12 22l-8.66-5V7z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="{% block body_class %}{% endblock %}"
+      data-role="{{ current_user.role if current_user.is_authenticated else '' }}"
+      data-poll="{{ url_for('manager.notifications') if current_user.is_authenticated and current_user.role == 'manager' else '' }}">
+
+{% if current_user.is_authenticated %}
+{% set ep = request.endpoint or '' %}
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="{{ url_for('main.home') }}">
+      <span class="logo">{{ icon('nut', 22) }}</span>
+      <span class="brand-text"><strong>Bike Factory</strong><small>Machine Issue Portal</small></span>
+    </a>
+
+    <nav class="nav" aria-label="Main menu">
+      {% if current_user.role == 'manager' %}
+      <a class="{{ 'active' if ep == 'manager.dashboard' }}" href="{{ url_for('manager.dashboard') }}">{{ icon('home') }}<span>Dashboard</span></a>
+      <a class="{{ 'active' if ep in ('manager.reports', 'manager.report_detail') }}" href="{{ url_for('manager.reports') }}">{{ icon('list') }}<span>All Reports</span>{% if unseen_count %}<em class="nav-badge" data-unseen>{{ unseen_count }}</em>{% else %}<em class="nav-badge hidden" data-unseen>0</em>{% endif %}</a>
+      <a class="{{ 'active' if ep in ('manager.issues', 'manager.issue_detail') }}" href="{{ url_for('manager.issues') }}">{{ icon('layers') }}<span>Issues &amp; Notes</span></a>
+      <a class="{{ 'active' if ep.startswith('manager.worker') }}" href="{{ url_for('manager.workers') }}">{{ icon('users') }}<span>Workers</span></a>
+      {% else %}
+      <a class="{{ 'active' if ep == 'worker.dashboard' }}" href="{{ url_for('worker.dashboard') }}">{{ icon('home') }}<span>Dashboard</span></a>
+      <a class="{{ 'active' if ep == 'worker.new_report' }}" href="{{ url_for('worker.new_report') }}">{{ icon('alert') }}<span>Report a Problem</span></a>
+      <a class="{{ 'active' if ep in ('worker.reports', 'worker.report_detail') }}" href="{{ url_for('worker.reports') }}">{{ icon('list') }}<span>My Reports</span></a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <span class="avatar">{{ current_user.name[:1]|upper }}</span>
+        <span><strong>{{ current_user.name }}</strong><small>{{ current_user.employee_id }} · {{ current_user.role|capitalize }}</small></span>
+      </div>
+      <a class="nav-link-small" href="{{ url_for('auth.change_password') }}">{{ icon('key', 16) }} Change password</a>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ghost-light btn-block" type="submit">{{ icon('logout', 18) }} Log out</button>
+      </form>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open menu">{{ icon('menu', 24) }}</button>
+      <h1 class="page-title">{% block page_title %}{{ app_name }}{% endblock %}</h1>
+      {% if current_user.role == 'manager' %}
+      <a class="icon-btn bell" href="{{ url_for('manager.reports', unseen=1) }}" aria-label="New reports" title="New reports">
+        {{ icon('bell', 22) }}<em class="bell-count {{ 'hidden' if not unseen_count }}" id="bell-count" data-unseen>{{ unseen_count }}</em>
+      </a>
+      {% endif %}
+    </header>
+    <main class="content">
+      {% include '_flashes.html' %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% else %}
+{% block public_content %}
+<main class="public-wrap">
+  {% include '_flashes.html' %}
+  {{ self.content() }}
+</main>
+{% endblock %}
+{% endif %}
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

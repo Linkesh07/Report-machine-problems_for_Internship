@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf %}
+{% block title %}Report a problem · {{ app_name }}{% endblock %}
+{% block page_title %}Report a machine problem{% endblock %}
+
+{% block content %}
+<div class="two-col">
+  <form class="card form-card" method="post" enctype="multipart/form-data" novalidate>
+    {{ csrf() }}
+    <div class="card-head"><h2>{{ icon('alert') }} What is wrong?</h2></div>
+
+    <div class="field">
+      <label for="machine_id">Machine</label>
+      <select id="machine_id" name="machine_id" required>
+        <option value="">Choose the machine…</option>
+        {% for m in machines %}
+        <option value="{{ m.id }}" data-department="{{ m.department }}" {% if form.get('machine_id') == m.id|string %}selected{% endif %}>{{ m.name }} ({{ m.machine_code }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="department">Department</label>
+      <input id="department" type="text" readonly tabindex="-1" placeholder="Filled in when you choose the machine">
+    </div>
+
+    <div class="field">
+      <label for="title">Problem title</label>
+      <input id="title" name="title" type="text" maxlength="120" placeholder="Example: Welding robot stops suddenly" value="{{ form.get('title', '') }}" required>
+    </div>
+
+    <div class="field">
+      <label for="message">Describe the problem</label>
+      <textarea id="message" name="message" rows="6" maxlength="2000" data-counter placeholder="What did you see, hear or smell? When did it start? Any warning lights or error codes?" required>{{ form.get('message', '') }}</textarea>
+      <small class="hint"><span data-counter-for="message">0</span> / 2000 characters</small>
+    </div>
+
+    <fieldset class="field">
+      <legend>How serious is it?</legend>
+      <div class="sev-picker">
+        {% for s, text in [('Low', 'Small problem, can wait'), ('Medium', 'Slows work down'), ('High', 'Work is badly affected'), ('Critical', 'Stopped or unsafe')] %}
+        <label class="sev-option sev-{{ s|lower }}">
+          <input type="radio" name="severity" value="{{ s }}" {% if form.get('severity', 'Medium') == s %}checked{% endif %} required>
+          <span><strong>{{ s }}</strong><small>{{ text }}</small></span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label for="photo">Photo (optional)</label>
+      <label class="file-drop" for="photo">
+        {{ icon('image', 26) }}
+        <span id="photo-name">Tap to add a photo (PNG, JPG, GIF or WEBP, up to 5 MB)</span>
+      </label>
+      <input id="photo" class="visually-hidden" name="photo" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+    </div>
+
+    <button class="btn btn-accent btn-xl btn-block" type="submit">Send to manager</button>
+  </form>
+
+  <aside class="card tips">
+    <h3>Tips for a good report</h3>
+    <ul class="tick-list">
+      <li>{{ icon('check', 16) }} Say <strong>what</strong> the machine is doing wrong.</li>
+      <li>{{ icon('check', 16) }} Mention any <strong>noise, smell, smoke or leak</strong>.</li>
+      <li>{{ icon('check', 16) }} Write down <strong>warning lights</strong> or error codes.</li>
+      <li>{{ icon('check', 16) }} Say <strong>when</strong> it started.</li>
+      <li>{{ icon('check', 16) }} A clear photo helps a lot.</li>
+    </ul>
+    <p class="muted small">If a colleague already reported the same problem, the system will group your report with theirs, so the manager sees how many people noticed it.</p>
+  </aside>
+</div>
+{% endblock %}

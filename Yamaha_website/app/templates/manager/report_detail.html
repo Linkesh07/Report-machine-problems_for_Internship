@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf, sev, status, match_badge %}
+{% block title %}Report #{{ r.id }} · {{ app_name }}{% endblock %}
+{% block page_title %}Report #{{ r.id }}{% endblock %}
+
+{% block content %}
+{% set here = url_for('manager.report_detail', rid=r.id) %}
+<a class="back-link" href="{{ url_for('manager.reports') }}">&larr; Back to all reports</a>
+
+<section class="card detail-head">
+  <div>
+    <h2>{{ r.title }}</h2>
+    <div class="badges">{{ match_badge(r) }} {{ sev(r.severity) }} {{ status(r.status) }}
+      <span class="badge neutral">Issue #{{ issue.id }} · {{ issue.priority }} priority</span></div>
+    <p class="muted">
+      Reported by <strong>{{ r.worker.name }}</strong> ({{ r.worker.employee_id }}) ·
+      <strong>{{ r.machine.name }}</strong>, {{ r.machine.department }} · {{ r.created_at|dt }}
+    </p>
+  </div>
+  <div class="reporters">
+    <strong>{{ issue.reporter_count }}</strong>
+    <span>worker{{ 's' if issue.reporter_count != 1 }} reported<br>this problem</span>
+  </div>
+</section>
+
+{# ---------- duplicate verdict + side-by-side comparison ---------- #}
+{% if match %}
+<section class="card compare-card">
+  <div class="card-head">
+    <h2>{{ icon('copy') }} Comparison</h2>
+    <span class="score">{{ r.similarity_score|pct }} similar</span>
+  </div>
+  <div class="sim-bar"><i style="width: {{ ((r.similarity_score or 0) * 100)|round|int }}%"></i></div>
+
+  {% if r.match_status == 'duplicate' %}
+  <p class="verdict verdict-dup"><strong>Duplicate.</strong> This report is {{ r.similarity_score|pct }} similar to Report #{{ match.id }} ({{ match.machine.name }} – {{ match.title }}), reported by {{ match.worker.name }} at {{ match.created_at.strftime('%I:%M %p') }}. It was added to the same issue.</p>
+  {% elif r.match_status == 'possible' %}
+  <p class="verdict verdict-possible"><strong>Please check.</strong> The system is not sure. This report is {{ r.similarity_score|pct }} similar to Report #{{ match.id }}. Read both messages and decide below.</p>
+  {% endif %}
+
+  <div class="compare">
+    <article class="compare-col">
+      <header><span class="tag">This report</span><small>#{{ r.id }}</small></header>
+      <h3>{{ r.title }}</h3>
+      <p class="message">{{ r.message }}</p>
+      <footer>{{ r.worker.name }} · {{ r.created_at|dt }}</footer>
+    </article>
+    <article class="compare-col original">
+      <header><span class="tag tag-dark">Similar earlier report</span><small>#{{ match.id }}</small></header>
+      <h3>{{ match.title }}</h3>
+      <p class="message">{{ match.message }}</p>
+      <footer>{{ match.worker.name }} · {{ match.created_at|dt }}</footer>
+    </article>
+  </div>
+
+  {% if shared %}
+  <p class="shared">Matching keywords:
+    {% for word in shared %}<span class="chip-word">{{ word }}</span>{% endfor %}
+  </p>
+  {% endif %}
+</section>
+{% elif r.manager_reviewed %}
+<section class="card"><p class="verdict verdict-new"><strong>Separate issue.</strong> You marked this report as not a duplicate.</p></section>
+{% else %}
+<section class="card"><p class="verdict verdict-new"><strong>New issue.</strong> No similar open report was found for this machine, so it has its own issue and notes area.</p></section>
+{% endif %}
+
+<div class="two-col">
+  <div class="stack-col">
+    <section class="card">
+      <div class="card-head"><h2>Worker's message</h2></div>
+      <p class="message">{{ r.message }}</p>
+      {% if r.photo_path %}
+      <img class="photo" src="{{ url_for('main.uploaded_file', filename=r.photo_path) }}" alt="Photo attached by {{ r.worker.name }}">
+      {% endif %}
+    </section>
+
+    {% if siblings %}
+    <section class="card">
+      <div class="card-head"><h2>Other reports in this issue</h2><a class="link" href="{{ url_for('manager.issue_detail', iid=issue.id) }}">Open issue</a></div>
+      <ul class="review-list">
+        {% for s in siblings %}
+        <li>
+          <div><strong>#{{ s.id }} {{ s.title }}</strong><small>{{ s.worker.name }} · {{ s.created_at|ago }} · {{ match_badge(s) }}</small></div>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('manager.report_detail', rid=s.id) }}">Open</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+
+  <div class="stack-col">
+    {# ---------- decision buttons ---------- #}
+    <section class="card">
+      <div class="card-head"><h2>{{ icon('shield') }} Duplicate decision</h2></div>
+      {% if r.match_status == 'possible' %}
+      <p class="muted">Is this the same problem as Report #{{ match.id }}?</p>
+      <div class="btn-row">
+        <form method="post" action="{{ url_for('manager.confirm_duplicate', rid=r.id) }}">
+          {{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+          <button class="btn btn-primary" type="submit">Yes, it is a duplicate</button>
+        </form>
+        <form method="post" action="{{ url_for('manager.not_duplicate', rid=r.id) }}">
+          {{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+          <button class="btn btn-ghost" type="submit">No, separate issue</button>
+        </form>
+      </div>
+      {% elif r.match_status == 'duplicate' %}
+      <p class="muted">The system grouped this report with Report #{{ match.id if match else '?' }}. If it guessed wrong, you can separate it.</p>
+      <form method="post" action="{{ url_for('manager.not_duplicate', rid=r.id) }}" data-confirm="Make this report a separate issue?">
+        {{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+        <button class="btn btn-ghost" type="submit">Not a duplicate</button>
+      </form>
+      {% else %}
+      <p class="muted">This is treated as a separate issue.</p>
+      {% endif %}
+
+      {% if merge_targets %}
+      <details class="merge">
+        <summary>Merge into another issue</summary>
+        <form class="inline-form" method="post" action="{{ url_for('manager.merge_report', rid=r.id) }}" data-confirm="Merge this report into the chosen issue?">
+          {{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+          <div class="field grow">
+            <label class="visually-hidden" for="target_issue_id">Issue</label>
+            <select id="target_issue_id" name="target_issue_id" required>
+              <option value="">Choose an open issue…</option>
+              {% for t in merge_targets %}<option value="{{ t.id }}">#{{ t.id }} · {{ t.title }}{% if t.machine %} ({{ t.machine.name }}){% endif %}</option>{% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit">Merge</button>
+        </form>
+      </details>
+      {% endif %}
+    </section>
+
+    {% set next_url = here %}
+    {% include 'manager/_issue_panel.html' %}
+
+    <section class="card">
+      <div class="card-head"><h2>{{ icon('trash') }} Delete report</h2></div>
+      {% if r.status != 'Resolved' %}
+      <p class="verdict verdict-possible"><strong>Not solved yet.</strong> This problem is still marked {{ r.status }}.</p>
+      {% endif %}
+      {% if siblings %}
+      <p class="muted">This removes Report #{{ r.id }} only. The other {{ siblings|length }} report(s) in this issue stay.</p>
+      {% else %}
+      <p class="muted">This is the only report in its issue, so the issue and its notes are deleted too.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('manager.report_delete', rid=r.id) }}" data-confirm="{% if r.status != 'Resolved' %}WARNING: Report #{{ r.id }} is NOT solved yet (status: {{ r.status }}). Delete it anyway? This cannot be undone.{% else %}Delete report #{{ r.id }} permanently? This cannot be undone.{% endif %}">
+        {{ csrf() }}
+        <button class="btn btn-danger" type="submit">{{ icon('trash', 18) }} Delete report</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

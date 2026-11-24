@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, sev, status, match_badge %}
+{% block title %}Issue #{{ issue.id }} · {{ app_name }}{% endblock %}
+{% block page_title %}Issue #{{ issue.id }}{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{{ url_for('manager.issues') }}">&larr; Back to issues</a>
+
+<section class="card detail-head">
+  <div>
+    <h2>{{ issue.title }}</h2>
+    <div class="badges">{{ sev(issue.priority) }} {{ status(issue.status) }}</div>
+    <p class="muted">{{ issue.machine.name if issue.machine else '' }}{% if issue.machine %} · {{ issue.machine.department }}{% endif %} · opened {{ issue.created_at|dt }}</p>
+  </div>
+  <div class="reporters">
+    <strong>{{ issue.reporter_count }}</strong>
+    <span>worker{{ 's' if issue.reporter_count != 1 }} reported<br>this problem</span>
+  </div>
+</section>
+
+<div class="two-col">
+  <section class="card">
+    <div class="card-head"><h2>Reports in this issue ({{ issue.reports|length }})</h2></div>
+    <ul class="timeline">
+      {% for r in issue.reports %}
+      <li>
+        <div class="timeline-dot {{ 'main' if r.id == issue.main_report_id }}"></div>
+        <div>
+          <div class="timeline-head">
+            <strong>#{{ r.id }} {{ r.title }}</strong>
+            {% if r.id == issue.main_report_id %}<span class="tag tag-dark">Original</span>{% endif %}
+            {{ match_badge(r) }}
+          </div>
+          <p class="message">{{ r.message }}</p>
+          <small class="muted">{{ r.worker.name }} · {{ r.created_at|dt }} · {{ sev(r.severity) }}</small>
+          <div><a class="link" href="{{ url_for('manager.report_detail', rid=r.id) }}">Open report</a></div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <div class="stack-col">
+    {% set next_url = url_for('manager.issue_detail', iid=issue.id) %}
+    {% include 'manager/_issue_panel.html' %}
+  </div>
+</div>
+{% endblock %}

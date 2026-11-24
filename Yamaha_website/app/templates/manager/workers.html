@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf %}
+{% block title %}Workers · {{ app_name }}{% endblock %}
+{% block page_title %}Worker accounts{% endblock %}
+
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <h2>{{ rows|length }} worker{{ 's' if rows|length != 1 }}</h2>
+    <a class="btn btn-accent" href="{{ url_for('manager.worker_new') }}">{{ icon('plus', 18) }} Add worker</a>
+  </div>
+
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="table stack">
+      <thead><tr><th>Employee ID</th><th>Name</th><th>Account</th><th>Reports</th><th>Last login</th><th></th></tr></thead>
+      <tbody>
+        {% for w in rows %}
+        <tr>
+          <td data-label="Employee ID"><strong>{{ w.employee_id }}</strong></td>
+          <td data-label="Name">{{ w.name }}</td>
+          <td data-label="Account">
+            {% if not w.is_active %}<span class="badge st-disabled">Disabled</span>
+            {% elif w.is_locked() %}<span class="badge sev-high">Locked</span>
+            {% else %}<span class="badge st-resolved">Active</span>{% endif %}
+          </td>
+          <td data-label="Reports">{{ counts.get(w.id, 0) }}</td>
+          <td data-label="Last login" class="nowrap">{{ w.last_login|ago }}</td>
+          <td class="row-action actions-cell">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('manager.worker_edit', uid=w.id) }}">{{ icon('edit', 16) }} Edit</a>
+            <form method="post" action="{{ url_for('manager.worker_toggle', uid=w.id) }}" data-confirm="{{ 'Disable' if w.is_active else 'Enable' }} {{ w.name }}?">
+              {{ csrf() }}
+              <button class="btn btn-ghost btn-sm" type="submit">{{ 'Disable' if w.is_active else 'Enable' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('manager.worker_delete', uid=w.id) }}" data-confirm="Delete {{ w.name }} permanently?{% if counts.get(w.id, 0) %} Their {{ counts.get(w.id) }} report(s) will be deleted too.{% endif %} This cannot be undone.">
+              {{ csrf() }}
+              <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">{{ icon('users', 40) }}<p>No workers yet.</p><a class="btn btn-primary" href="{{ url_for('manager.worker_new') }}">Add the first worker</a></div>
+  {% endif %}
+</section>
+{% endblock %}

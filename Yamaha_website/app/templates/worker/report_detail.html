@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, sev, status %}
+{% block title %}Report #{{ r.id }} · {{ app_name }}{% endblock %}
+{% block page_title %}Report #{{ r.id }}{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{{ url_for('worker.reports') }}">&larr; Back to my reports</a>
+
+<section class="card detail-head">
+  <div>
+    <h2>{{ r.title }}</h2>
+    <div class="badges">{{ sev(r.severity) }} {{ status(r.status) }}</div>
+    <p class="muted">{{ r.machine.name }} · {{ r.machine.department }} · sent {{ r.created_at|dt }}</p>
+  </div>
+</section>
+
+{% set notes = r.issue.notes if r.issue else [] %}
+<section class="card" id="manager-messages">
+  <div class="card-head"><h2>{{ icon('note') }} Message from the manager</h2><span class="muted small">{{ notes|length }} message{{ 's' if notes|length != 1 }}</span></div>
+  {% if notes %}
+  <ul class="notes">
+    {% for n in notes %}
+    <li>
+      <p>{{ n.note_text }}</p>
+      <small>{{ n.manager.name }} · {{ n.created_at|dt }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted small">No message yet. When the manager writes about this problem, it will appear here.</p>
+  {% endif %}
+</section>
+
+<div class="two-col">
+  <section class="card">
+    <div class="card-head"><h2>What you wrote</h2></div>
+    <p class="message">{{ r.message }}</p>
+    {% if r.photo_path %}
+    <img class="photo" src="{{ url_for('main.uploaded_file', filename=r.photo_path) }}" alt="Photo you attached to this report">
+    {% endif %}
+  </section>
+
+  <aside class="card">
+    <div class="card-head"><h2>Progress</h2></div>
+    <ol class="steps">
+      <li class="done"><span>{{ icon('check', 16) }}</span><div><strong>Sent to manager</strong><small>{{ r.created_at|dt }}</small></div></li>
+      <li class="{{ 'done' if r.status in ('In Progress', 'Resolved') }}"><span>{{ icon('tool', 16) }}</span><div><strong>Being fixed</strong><small>{{ 'The manager is working on it' if r.status == 'In Progress' else 'Waiting' if r.status == 'Pending' else 'Done' }}</small></div></li>
+      <li class="{{ 'done' if r.status == 'Resolved' }}"><span>{{ icon('check', 16) }}</span><div><strong>Resolved</strong><small>{{ 'The problem is fixed' if r.status == 'Resolved' else 'Not yet' }}</small></div></li>
+    </ol>
+  </aside>
+</div>
+{% endblock %}

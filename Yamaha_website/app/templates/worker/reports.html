@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, pager %}
+{% block title %}My reports · {{ app_name }}{% endblock %}
+{% block page_title %}My reports{% endblock %}
+
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <h2>All my reports</h2>
+    <a class="btn btn-accent" href="{{ url_for('worker.new_report') }}">{{ icon('plus', 18) }} New report</a>
+  </div>
+
+  <div class="chips">
+    <a class="chip {{ 'active' if not status }}" href="{{ url_for('worker.reports') }}">All</a>
+    {% for s in STATUSES %}
+    <a class="chip {{ 'active' if status == s }}" href="{{ url_for('worker.reports', status=s) }}">{{ s }}</a>
+    {% endfor %}
+  </div>
+
+  {% with rows=pagination.items %}{% include 'worker/_report_table.html' %}{% endwith %}
+  {{ pager(pagination, 'worker.reports', args) }}
+</section>
+{% endblock %}

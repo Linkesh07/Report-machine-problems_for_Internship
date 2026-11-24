@@ -1,0 +1,29 @@
+{% from '_macros.html' import sev, status, icon %}
+{% if rows %}
+<div class="table-wrap">
+  <table class="table stack">
+    <thead>
+      <tr><th>#</th><th>Machine</th><th>Problem</th><th>Severity</th><th>Status</th><th>Sent</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td data-label="Report">#{{ r.id }}</td>
+        <td data-label="Machine">{{ r.machine.name }}</td>
+        <td data-label="Problem"><strong>{{ r.title }}</strong>{% if r.issue and r.issue.notes %}<br><a class="badge st-in-progress" href="{{ url_for('worker.report_detail', rid=r.id) }}#manager-messages">{{ icon('note', 14) }} Manager message ({{ r.issue.notes|length }})</a>{% endif %}</td>
+        <td data-label="Severity">{{ sev(r.severity) }}</td>
+        <td data-label="Status">{{ status(r.status) }}</td>
+        <td data-label="Sent" class="nowrap" title="{{ r.created_at|dt }}">{{ r.created_at|ago }}</td>
+        <td class="row-action"><a class="btn btn-ghost btn-sm" href="{{ url_for('worker.report_detail', rid=r.id) }}">View {{ icon('arrow', 16) }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">
+  {{ icon('note', 40) }}
+  <p>No reports here yet.</p>
+  <a class="btn btn-primary" href="{{ url_for('worker.new_report') }}">Report a machine problem</a>
+</div>
+{% endif %}

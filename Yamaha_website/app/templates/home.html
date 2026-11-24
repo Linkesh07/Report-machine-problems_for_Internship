@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon %}
+{% block title %}Welcome · {{ app_name }}{% endblock %}
+{% block body_class %}theme-home{% endblock %}
+
+{% block public_content %}
+<main class="home">
+  <div class="home-glow"></div>
+  <header class="home-head">
+    <span class="logo logo-lg">{{ icon('nut', 30) }}</span>
+    <div>
+      <strong>Bike Factory</strong>
+      <small>Machine Issue Portal</small>
+    </div>
+  </header>
+
+  <section class="home-hero">
+    <p class="eyebrow">Authorised staff only</p>
+    <h1>Report machine problems.<br>Fix them faster.</h1>
+    <p class="lead">Workers report a machine failure in under a minute. The manager sees every report, and the system automatically tells the manager when several workers describe the same problem.</p>
+  </section>
+
+  {% include '_flashes.html' %}
+
+  <section class="portal-grid">
+    <a class="portal-card portal-worker" href="{{ url_for('auth.worker_login') }}">
+      <span class="portal-icon">{{ icon('tool', 30) }}</span>
+      <h2>Worker Login</h2>
+      <p>Report a failed machine and follow what the manager is doing about it.</p>
+      <span class="portal-go">Sign in as worker {{ icon('arrow', 18) }}</span>
+    </a>
+    <a class="portal-card portal-manager" href="{{ url_for('auth.manager_login') }}">
+      <span class="portal-icon">{{ icon('shield', 30) }}</span>
+      <h2>Manager Login</h2>
+      <p>See all reports, spot duplicates, add notes and manage worker accounts.</p>
+      <span class="portal-go">Sign in as manager {{ icon('arrow', 18) }}</span>
+    </a>
+  </section>
+
+  <ul class="home-points">
+    <li>{{ icon('check', 18) }} Duplicate reports are detected automatically</li>
+    <li>{{ icon('check', 18) }} Works on phones and tablets on the factory floor</li>
+    <li>{{ icon('check', 18) }} Private: only the manager and workers can enter</li>
+  </ul>
+</main>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, sev, status, match_badge %}
+{% block title %}Manager Dashboard · {{ app_name }}{% endblock %}
+{% block page_title %}Manager dashboard{% endblock %}
+
+{% block content %}
+<section class="stats stats-6">
+  <a class="stat stat-link" href="{{ url_for('manager.reports') }}"><span class="stat-icon tone-blue">{{ icon('list') }}</span><div><strong>{{ stats.total }}</strong><span>Total reports</span></div></a>
+  <a class="stat stat-link" href="{{ url_for('manager.reports', match='new') }}"><span class="stat-icon tone-green">{{ icon('plus') }}</span><div><strong>{{ stats.new }}</strong><span>New issues</span></div></a>
+  <a class="stat stat-link" href="{{ url_for('manager.reports', match='duplicate') }}"><span class="stat-icon tone-amber">{{ icon('copy') }}</span><div><strong>{{ stats.duplicate }}</strong><span>Duplicates</span></div></a>
+  <a class="stat stat-link" href="{{ url_for('manager.reports', match='possible') }}"><span class="stat-icon tone-violet">{{ icon('search') }}</span><div><strong>{{ stats.review }}</strong><span>Need your check</span></div></a>
+  <a class="stat stat-link" href="{{ url_for('manager.issues', status='Resolved') }}"><span class="stat-icon tone-green">{{ icon('check') }}</span><div><strong>{{ stats.resolved }}</strong><span>Resolved issues</span></div></a>
+  <a class="stat stat-link" href="{{ url_for('manager.issues', priority='Critical') }}"><span class="stat-icon tone-red">{{ icon('alert') }}</span><div><strong>{{ stats.critical }}</strong><span>Critical open</span></div></a>
+</section>
+
+<div class="grid-3">
+  <section class="card">
+    <div class="card-head"><h2>Reports in the last 7 days</h2></div>
+    <div class="col-chart">
+      {% for label, count, pct in week %}
+      <div class="col"><span class="col-num">{{ count }}</span><span class="col-bar"><i style="height: {{ pct }}%"></i></span><span class="col-label">{{ label }}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Open issues by priority</h2></div>
+    <div class="hbars">
+      {% for label, count, pct in priority_bars %}
+      <div class="hbar"><span class="hbar-label">{{ label }}</span><span class="hbar-track"><i class="fill-{{ label|lower }}" style="width: {{ pct }}%"></i></span><span class="hbar-num">{{ count }}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Machines with most reports</h2></div>
+    {% if machine_bars %}
+    <div class="hbars">
+      {% for label, count, pct in machine_bars %}
+      <div class="hbar"><span class="hbar-label">{{ label }}</span><span class="hbar-track"><i class="fill-blue" style="width: {{ pct }}%"></i></span><span class="hbar-num">{{ count }}</span></div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">No reports yet.</p>{% endif %}
+  </section>
+</div>
+
+{% if needs_review %}
+<section class="card card-alert">
+  <div class="card-head">
+    <h2>{{ icon('search') }} Please check these possible duplicates</h2>
+    <a class="link" href="{{ url_for('manager.reports', match='possible') }}">See all</a>
+  </div>
+  <ul class="review-list">
+    {% for r in needs_review %}
+    <li>
+      <div><strong>#{{ r.id }} {{ r.title }}</strong><small>{{ r.machine.name }} · {{ r.worker.name }} · {{ r.created_at|ago }} · {{ r.similarity_score|pct }} similar to #{{ r.duplicate_of_id }}</small></div>
+      <a class="btn btn-primary btn-sm" href="{{ url_for('manager.report_detail', rid=r.id) }}">Compare</a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-head"><h2>Latest reports</h2><a class="link" href="{{ url_for('manager.reports') }}">View all</a></div>
+  {% if recent %}
+  <div class="table-wrap">
+    <table class="table stack">
+      <thead><tr><th>#</th><th>Problem</th><th>Machine</th><th>Worker</th><th>Severity</th><th>Result</th><th>Sent</th><th></th></tr></thead>
+      <tbody>
+        {% for r in recent %}
+        <tr class="{{ 'unseen' if not r.seen_by_manager }}">
+          <td data-label="Report">#{{ r.id }}</td>
+          <td data-label="Problem"><strong>{{ r.title }}</strong></td>
+          <td data-label="Machine">{{ r.machine.name }}</td>
+          <td data-label="Worker">{{ r.worker.name }}</td>
+          <td data-label="Severity">{{ sev(r.severity) }}</td>
+          <td data-label="Result">{{ match_badge(r) }}</td>
+          <td data-label="Sent" class="nowrap" title="{{ r.created_at|dt }}">{{ r.created_at|ago }}</td>
+          <td class="row-action"><a class="btn btn-ghost btn-sm" href="{{ url_for('manager.report_detail', rid=r.id) }}">Open</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">{{ icon('note', 40) }}<p>No reports yet. They will appear here when workers send them.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

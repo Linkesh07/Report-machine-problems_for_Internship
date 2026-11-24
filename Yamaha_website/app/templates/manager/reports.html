@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf, sev, status, match_badge, pager %}
+{% block title %}All reports · {{ app_name }}{% endblock %}
+{% block page_title %}All reports{% endblock %}
+
+{% block content %}
+<form class="card filters" method="get">
+  <div class="field grow">
+    <label for="q">Search</label>
+    <input id="q" type="search" name="q" value="{{ f.q }}" placeholder="Title, message, worker or machine">
+  </div>
+  <div class="field">
+    <label for="machine">Machine</label>
+    <select id="machine" name="machine">
+      <option value="">All</option>
+      {% for m in machines %}<option value="{{ m.id }}" {% if f.machine == m.id|string %}selected{% endif %}>{{ m.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="worker">Worker</label>
+    <select id="worker" name="worker">
+      <option value="">All</option>
+      {% for w in workers %}<option value="{{ w.id }}" {% if f.worker == w.id|string %}selected{% endif %}>{{ w.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="">All</option>
+      {% for s in STATUSES %}<option {% if f.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="severity">Severity</label>
+    <select id="severity" name="severity">
+      <option value="">All</option>
+      {% for s in SEVERITIES %}<option {% if f.severity == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="match">Result</label>
+    <select id="match" name="match">
+      <option value="">All</option>
+      <option value="new" {% if f.match == 'new' %}selected{% endif %}>New issue</option>
+      <option value="duplicate" {% if f.match == 'duplicate' %}selected{% endif %}>Duplicate</option>
+      <option value="possible" {% if f.match == 'possible' %}selected{% endif %}>Possible duplicate</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="date_from">From</label>
+    <input id="date_from" type="date" name="date_from" value="{{ f.date_from }}">
+  </div>
+  <div class="field">
+    <label for="date_to">To</label>
+    <input id="date_to" type="date" name="date_to" value="{{ f.date_to }}">
+  </div>
+  <div class="filter-actions">
+    <button class="btn btn-primary" type="submit">{{ icon('search', 18) }} Filter</button>
+    <a class="btn btn-ghost" href="{{ url_for('manager.reports') }}">Clear</a>
+  </div>
+</form>
+
+<section class="card">
+  <div class="card-head">
+    <h2>{{ pagination.total }} report{{ 's' if pagination.total != 1 }}{% if f.unseen == '1' %} · new only{% endif %}</h2>
+    {% if unseen_count %}
+    <form method="post" action="{{ url_for('manager.mark_seen') }}">
+      {{ csrf() }}<input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+      <button class="btn btn-ghost btn-sm" type="submit">{{ icon('check', 16) }} Mark all as seen</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if pagination.items %}
+  <div class="table-wrap">
+    <table class="table stack">
+      <thead><tr><th>#</th><th>Problem</th><th>Machine</th><th>Worker</th><th>Severity</th><th>Status</th><th>Result</th><th>Sent</th><th></th></tr></thead>
+      <tbody>
+        {% for r in pagination.items %}
+        <tr class="{{ 'unseen' if not r.seen_by_manager }}">
+          <td data-label="Report">{% if not r.seen_by_manager %}<i class="dot" title="New"></i>{% endif %}#{{ r.id }}</td>
+          <td data-label="Problem">
+            <strong>{{ r.title }}</strong>
+            <small class="clip">{{ r.message }}</small>
+          </td>
+          <td data-label="Machine">{{ r.machine.name }}</td>
+          <td data-label="Worker">{{ r.worker.name }}</td>
+          <td data-label="Severity">{{ sev(r.severity) }}</td>
+          <td data-label="Status">{{ status(r.status) }}</td>
+          <td data-label="Result">{{ match_badge(r) }}
+            {% if r.match_status != 'new' and r.duplicate_of_id %}<small>Similar to Report #{{ r.duplicate_of_id }}</small>{% endif %}
+          </td>
+          <td data-label="Sent" class="nowrap" title="{{ r.created_at|dt }}">{{ r.created_at|ago }}</td>
+          <td class="row-action actions-cell">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('manager.report_detail', rid=r.id) }}" aria-label="Open report #{{ r.id }}" title="Open report #{{ r.id }}"><span class="open-text">Open</span>{{ icon('arrow', 16) }}</a>
+            {% if r.seen_by_manager %}
+            <form method="post" action="{{ url_for('manager.report_delete', rid=r.id) }}" data-confirm="{% if r.status != 'Resolved' %}WARNING: Report #{{ r.id }} is NOT solved yet (status: {{ r.status }}). Delete it anyway? This cannot be undone.{% else %}Delete report #{{ r.id }} permanently? This cannot be undone.{% endif %}">
+              {{ csrf() }}<input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+              <button class="btn btn-danger btn-sm" type="submit" aria-label="Delete report #{{ r.id }}" title="Delete report #{{ r.id }}"><span class="open-text">Delete</span>{{ icon('trash', 16) }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pager(pagination, 'manager.reports', args) }}
+  {% else %}
+  <div class="empty">{{ icon('search', 40) }}<p>No reports match these filters.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, sev, status, pager %}
+{% block title %}Issues &amp; notes · {{ app_name }}{% endblock %}
+{% block page_title %}Issues &amp; notes{% endblock %}
+
+{% block content %}
+<section class="card">
+  <div class="card-head"><h2>Each issue is one real problem (many reports can belong to it)</h2></div>
+
+  <form class="filters flat" method="get">
+    <div class="field">
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        <option value="">All</option>
+        {% for s in STATUSES %}<option {% if status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="priority">Priority</label>
+      <select id="priority" name="priority">
+        <option value="">All</option>
+        {% for s in SEVERITIES %}<option {% if priority == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" type="submit">Filter</button>
+      <a class="btn btn-ghost" href="{{ url_for('manager.issues') }}">Clear</a>
+    </div>
+  </form>
+
+  {% if pagination.items %}
+  <div class="table-wrap">
+    <table class="table stack">
+      <thead><tr><th>Issue</th><th>Machine</th><th>Priority</th><th>Status</th><th>Workers</th><th>Reports</th><th>Notes</th><th>Updated</th><th></th></tr></thead>
+      <tbody>
+        {% for i in pagination.items %}
+        <tr>
+          <td data-label="Issue"><strong>#{{ i.id }} {{ i.title }}</strong></td>
+          <td data-label="Machine">{{ i.machine.name if i.machine else '—' }}</td>
+          <td data-label="Priority">{{ sev(i.priority) }}</td>
+          <td data-label="Status">{{ status(i.status) }}</td>
+          <td data-label="Workers">{{ i.reporter_count }}</td>
+          <td data-label="Reports">{{ i.reports|length }}</td>
+          <td data-label="Notes">{{ i.notes|length }}</td>
+          <td data-label="Updated" class="nowrap" title="{{ i.updated_at|dt }}">{{ i.updated_at|ago }}</td>
+          <td class="row-action"><a class="btn btn-ghost btn-sm" href="{{ url_for('manager.issue_detail', iid=i.id) }}">Open {{ icon('arrow', 16) }}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pager(pagination, 'manager.issues', args) }}
+  {% else %}
+  <div class="empty">{{ icon('layers', 40) }}<p>No issues found.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,60 @@
+{# Status, priority and notes of one issue. Needs: issue, next_url #}
+{% from '_macros.html' import icon, csrf, sev, status %}
+
+<section class="card">
+  <div class="card-head">
+    <h2>{{ icon('tool') }} Issue #{{ issue.id }} controls</h2>
+    <span class="muted small">Reported by {{ issue.reporter_count }} worker{{ 's' if issue.reporter_count != 1 }}</span>
+  </div>
+
+  <form class="inline-form" method="post" action="{{ url_for('manager.issue_status', iid=issue.id) }}">
+    {{ csrf() }}<input type="hidden" name="next" value="{{ next_url }}">
+    <div class="field grow">
+      <label for="status-{{ issue.id }}">Status</label>
+      <select id="status-{{ issue.id }}" name="status">
+        {% for s in STATUSES %}<option value="{{ s }}" {% if issue.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Update status</button>
+  </form>
+  <small class="hint">The new status is shown to every worker who reported this problem.</small>
+
+  <form class="inline-form" method="post" action="{{ url_for('manager.issue_priority', iid=issue.id) }}">
+    {{ csrf() }}<input type="hidden" name="next" value="{{ next_url }}">
+    <div class="field grow">
+      <label for="priority-{{ issue.id }}">Priority {% if not issue.priority_locked %}<span class="tag">automatic</span>{% endif %}</label>
+      <select id="priority-{{ issue.id }}" name="priority">
+        <option value="auto" {% if not issue.priority_locked %}selected{% endif %}>Automatic (now {{ issue.priority }})</option>
+        {% for s in SEVERITIES %}<option value="{{ s }}" {% if issue.priority_locked and issue.priority == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Set priority</button>
+  </form>
+  <small class="hint">Automatic priority goes up when several workers report the same problem.</small>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>{{ icon('note') }} Manager notes</h2><span class="muted small">{{ issue.notes|length }} note{{ 's' if issue.notes|length != 1 }}</span></div>
+  <small class="hint">Notes are shown to the {{ issue.reporter_count }} worker{{ 's' if issue.reporter_count != 1 }} who reported this problem, so they can read your message.</small>
+  <form method="post" action="{{ url_for('manager.issue_note', iid=issue.id) }}">
+    {{ csrf() }}<input type="hidden" name="next" value="{{ next_url }}">
+    <div class="field">
+      <label class="visually-hidden" for="note-{{ issue.id }}">New note</label>
+      <textarea id="note-{{ issue.id }}" name="note_text" rows="3" maxlength="2000" placeholder="Write a message for the workers: progress, who is fixing it, what to do meanwhile…" required></textarea>
+    </div>
+    <button class="btn btn-primary" type="submit">{{ icon('plus', 18) }} Add note</button>
+  </form>
+
+  {% if issue.notes %}
+  <ul class="notes">
+    {% for n in issue.notes %}
+    <li>
+      <p>{{ n.note_text }}</p>
+      <small>{{ n.manager.name }} · {{ n.created_at|dt }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted small">No notes yet for this issue.</p>
+  {% endif %}
+</section>

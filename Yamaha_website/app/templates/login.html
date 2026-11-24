@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf %}
+{% set is_manager = role == 'manager' %}
+{% block title %}{{ 'Manager' if is_manager else 'Worker' }} Login · {{ app_name }}{% endblock %}
+{% block body_class %}theme-{{ role }}{% endblock %}
+
+{% block public_content %}
+<div class="login-split">
+  <aside class="login-brand">
+    <div class="login-brand-inner">
+      <span class="logo logo-lg">{{ icon('nut', 30) }}</span>
+      <p class="eyebrow">{{ 'Manager portal' if is_manager else 'Worker portal' }}</p>
+      {% if is_manager %}
+      <h1>See every problem.<br>Decide what is next.</h1>
+      <ul>
+        <li>{{ icon('check', 18) }} All worker reports in one place</li>
+        <li>{{ icon('check', 18) }} Duplicates flagged automatically</li>
+        <li>{{ icon('check', 18) }} Notes and status for each issue</li>
+      </ul>
+      {% else %}
+     
+     <h1>Machine not working?<br>Tell us in a minute.</h1>
+      <ul>
+        <li>{{ icon('check', 18) }} Quick report form</li>
+        <li>{{ icon('check', 18) }} Add a photo if you like</li>
+        <li>{{ icon('check', 18) }} Follow the status of your reports</li>
+      </ul>
+      {% endif %}
+    </div>
+  </aside>
+
+  <section class="login-panel">
+    <div class="login-card">
+      <a class="back-link" href="{{ url_for('main.home') }}">&larr; Back to home</a>
+      <h2>{{ 'Manager' if is_manager else 'Worker' }} sign in</h2>
+      <p class="muted">Enter your Employee ID and password.</p>
+
+      {% include '_flashes.html' %}
+
+      <form method="post" novalidate>
+        {{ csrf() }}
+        <input type="hidden" name="next" value="{{ next or '' }}">
+        <div class="field">
+          <label for="employee_id">Employee ID</label>
+          <input id="employee_id" name="employee_id" type="text" autocomplete="username" autocapitalize="characters"
+                 placeholder="{{ 'MGR001' if is_manager else 'WRK001' }}" value="{{ employee_id }}" required autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="pw">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
+            <button class="pw-toggle" type="button" data-toggle-password>Show</button>
+          </div>
+        </div>
+        <button class="btn btn-accent btn-lg btn-block" type="submit">Sign in</button>
+      </form>
+
+      <p class="muted small login-switch">
+        {% if is_manager %}Are you a worker? <a href="{{ url_for('auth.worker_login') }}">Go to worker login</a>
+        {% else %}Are you the manager? <a href="{{ url_for('auth.manager_login') }}">Go to manager login</a>{% endif %}
+      </p>
+      <p class="muted small">Forgot your password? Ask the manager to reset it.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}
